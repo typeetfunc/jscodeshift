@@ -10,8 +10,6 @@
 
 'use strict';
 
-var _toConsumableArray = require('babel-runtime/helpers/to-consumable-array')['default'];
-
 var _ = require('lodash');
 var Collection = require('../Collection');
 
@@ -30,7 +28,7 @@ var traversalMethods = {
    * @param {filter}
    * @return {Collection}
    */
-  find: function find(type, filter) {
+  find: function(type, filter) {
     var paths = [];
     var visitorMethodName = 'visit' + type;
 
@@ -42,9 +40,9 @@ var traversalMethods = {
       }
       this.traverse(path);
     }
-    this.__paths.forEach(function (p, i) {
+    this.__paths.forEach(function(p, i) {
       var self = this;
-      visitor[visitorMethodName] = function (path) {
+      visitor[visitorMethodName] = function(path) {
         if (self.__paths[i] === path) {
           this.traverse(path);
         } else {
@@ -63,10 +61,8 @@ var traversalMethods = {
    *
    * @return {Collection}
    */
-  closestScope: function closestScope() {
-    return this.map(function (path) {
-      return path.scope && path.scope.path;
-    });
+  closestScope: function() {
+    return this.map(path => path.scope && path.scope.path);
   },
 
   /**
@@ -76,10 +72,16 @@ var traversalMethods = {
    * @param {filter}
    * @return {Collection}
    */
-  closest: function closest(type, filter) {
-    return this.map(function (path) {
+  closest: function(type, filter) {
+    return this.map(function(path) {
       var parent = path.parent;
-      while (parent && !(type.check(parent.value) && (!filter || matchNode(parent.value, filter)))) {
+      while (
+        parent &&
+        !(
+          type.check(parent.value) &&
+          (!filter || matchNode(parent.value, filter))
+        )
+      ) {
         parent = parent.parent;
       }
       return parent || null;
@@ -97,8 +99,8 @@ var traversalMethods = {
    *
    * @return {Collection}
    */
-  getVariableDeclarators: function getVariableDeclarators(nameGetter) {
-    return this.map(function (path) {
+  getVariableDeclarators: function(nameGetter) {
+    return this.map(function(path) {
       /*jshint curly:false*/
       var scope = path.scope;
       if (!scope) return;
@@ -108,12 +110,13 @@ var traversalMethods = {
       if (!scope) return;
       var bindings = scope.getBindings()[name];
       if (!bindings) return;
-      var decl = Collection.fromPaths(bindings).closest(types.VariableDeclarator);
+      var decl = Collection.fromPaths(bindings)
+        .closest(types.VariableDeclarator);
       if (decl.size() === 1) {
         return decl.paths()[0];
       }
     }, types.VariableDeclarator);
-  }
+  },
 };
 
 function toArray(value) {
@@ -129,10 +132,11 @@ var mutationMethods = {
    * @param {Node|Array<Node>|function} nodes
    * @return {Collection}
    */
-  replaceWith: function replaceWith(nodes) {
-    return this.forEach(function (path, i) {
-      var newNodes = typeof nodes === 'function' ? nodes.call(path, path, i) : nodes;
-      path.replace.apply(path, _toConsumableArray(toArray(newNodes)));
+  replaceWith: function(nodes) {
+    return this.forEach(function(path, i) {
+      var newNodes =
+        (typeof nodes === 'function') ? nodes.call(path, path, i) : nodes;
+      path.replace.apply(path, toArray(newNodes));
     });
   },
 
@@ -142,10 +146,11 @@ var mutationMethods = {
    * @param {Node|Array<Node>|function} insert
    * @return {Collection}
    */
-  insertBefore: function insertBefore(insert) {
-    return this.forEach(function (path, i) {
-      var newNodes = typeof insert === 'function' ? insert.call(path, path, i) : insert;
-      path.insertBefore.apply(path, _toConsumableArray(toArray(newNodes)));
+  insertBefore: function(insert) {
+    return this.forEach(function(path, i) {
+      var newNodes =
+        (typeof insert === 'function') ? insert.call(path, path, i) : insert;
+      path.insertBefore.apply(path, toArray(newNodes));
     });
   },
 
@@ -155,17 +160,16 @@ var mutationMethods = {
    * @param {Node|Array<Node>|function} insert
    * @return {Collection}
    */
-  insertAfter: function insertAfter(insert) {
-    return this.forEach(function (path, i) {
-      var newNodes = typeof insert === 'function' ? insert.call(path, path, i) : insert;
-      path.insertAfter.apply(path, _toConsumableArray(toArray(newNodes)));
+  insertAfter: function(insert) {
+    return this.forEach(function(path, i) {
+      var newNodes =
+        (typeof insert === 'function') ? insert.call(path, path, i) : insert;
+      path.insertAfter.apply(path, toArray(newNodes));
     });
   },
 
-  remove: function remove() {
-    return this.forEach(function (path) {
-      return path.prune();
-    });
+  remove: function() {
+    return this.forEach(path => path.prune());
   }
 
 };

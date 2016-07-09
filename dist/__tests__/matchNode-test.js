@@ -11,27 +11,25 @@
 
 'use strict';
 
-var _Object$create = require('babel-runtime/core-js/object/create')['default'];
-
 jest.autoMockOff();
 var matchNode = require('../matchNode');
 
-describe('matchNode', function () {
-  beforeEach(function () {
+describe('matchNode', function() {
+  beforeEach(function() {
     jest.addMatchers({
-      toMatchNode: function toMatchNode() {
+      toMatchNode: function() {
         return {
-          compare: function compare(haystack, needle) {
-            var result = {};
+          compare(haystack, needle) {
+            const result = {};
             result.pass = matchNode(haystack, needle);
             return result;
-          }
+          },
         };
       }
     });
-  });
+  })
 
-  it('matches null and undefined', function () {
+  it('matches null and undefined', function() {
     expect(null).toMatchNode(null);
     expect(null).not.toMatchNode(undefined);
 
@@ -39,7 +37,7 @@ describe('matchNode', function () {
     expect(undefined).not.toMatchNode(null);
   });
 
-  it('matches scalars', function () {
+  it('matches scalars', function() {
     expect('foo').toMatchNode('foo');
     expect('foo').not.toMatchNode('bar');
     expect('123').not.toMatchNode(123);
@@ -53,7 +51,7 @@ describe('matchNode', function () {
     expect(true).not.toMatchNode('true');
   });
 
-  it('matches arrays', function () {
+  it('matches arrays', function() {
     expect([1, 2, 3]).toMatchNode([1, 2, 3]);
     expect([1, 2, 3]).not.toMatchNode([4, 5, 6]);
 
@@ -65,23 +63,25 @@ describe('matchNode', function () {
     expect([1, 2, 3]).not.toMatchNode([1, 2, 3, 4]);
   });
 
-  it('matches objects', function () {
+  it('matches objects', function() {
     expect({}).toMatchNode({});
-    expect({ name: 'foo' }).toMatchNode({ name: 'foo' });
-    expect({ name: 'foo' }).not.toMatchNode({ name: 'bar' });
+    expect({name: 'foo'}).toMatchNode({name: 'foo'});
+    expect({name: 'foo'}).not.toMatchNode({name: 'bar'});
 
-    expect({ name: 'foo', value: { name: 'bar' } }).toMatchNode({ name: 'foo', value: { name: 'bar' } });
-    expect({ name: 'foo', value: { name: 'bar' } }).not.toMatchNode({ name: 'foo', value: { name: 'baz' } });
+    expect({name: 'foo', value: {name: 'bar'}})
+      .toMatchNode({name: 'foo', value: {name: 'bar'}});
+    expect({name: 'foo', value: {name: 'bar'}})
+      .not.toMatchNode({name: 'foo', value: {name: 'baz'}});
 
-    expect({ name: 'foo', value: 'bar' }).toMatchNode({ name: 'foo' });
-    expect({ name: 'foo' }).not.toMatchNode({ name: 'foo', value: 'bar' });
+    expect({name: 'foo', value: 'bar'}).toMatchNode({name: 'foo'});
+    expect({name: 'foo'}).not.toMatchNode({name: 'foo', value: 'bar'});
 
-    expect(_Object$create({ name: 'foo' })).not.toMatchNode({ name: 'foo' });
-    expect({}).toMatchNode(_Object$create({ name: 'foo' }));
+    expect(Object.create({name: 'foo'})).not.toMatchNode({name: 'foo'});
+    expect({}).toMatchNode(Object.create({name: 'foo'}));
   });
 
-  it('matches with a function', function () {
-    var haystack = { name: 'foo' };
+  it('matches with a function', function() {
+    var haystack = {name: 'foo'};
     var needle = jest.genMockFunction();
 
     needle.mockReturnValue(true);
@@ -92,11 +92,11 @@ describe('matchNode', function () {
     expect(haystack).not.toMatchNode(needle);
   });
 
-  it('matches nested value with a function', function () {
-    var haystack = { name: 'foo', value: 'bar' };
+  it('matches nested value with a function', function() {
+    var haystack = {name: 'foo', value: 'bar'};
     var needle = {
       name: jest.genMockFunction(),
-      value: jest.genMockFunction()
+      value: jest.genMockFunction(),
     };
 
     needle.name.mockReturnValue(true);

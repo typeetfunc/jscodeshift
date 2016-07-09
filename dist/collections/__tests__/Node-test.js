@@ -12,7 +12,7 @@
 
 jest.autoMockOff();
 
-describe('Collection API', function () {
+describe('Collection API', function() {
   var ast;
   var Collection;
   var NodeCollection;
@@ -20,7 +20,7 @@ describe('Collection API', function () {
   var types;
   var b;
 
-  beforeEach(function () {
+  beforeEach(function() {
     Collection = require('../../Collection');
     NodeCollection = require('../Node');
     recast = require('recast');
@@ -30,48 +30,85 @@ describe('Collection API', function () {
 
     NodeCollection.register();
 
-    ast = b.program([b.variableDeclaration('var', [b.variableDeclarator(b.identifier('foo'), null)]), b.functionDeclaration(b.identifier('f'), [], b.blockStatement([b.variableDeclaration('var', [b.variableDeclarator(b.identifier('bar'), null)]), b.variableDeclaration('var', [b.variableDeclarator(b.identifier('baz'), null)])]))]);
+    ast = b.program([
+      b.variableDeclaration(
+        'var',
+        [b.variableDeclarator(b.identifier('foo'), null)]
+      ),
+      b.functionDeclaration(
+        b.identifier('f'),
+        [],
+        b.blockStatement([
+          b.variableDeclaration(
+            'var',
+            [b.variableDeclarator(b.identifier('bar'), null)]
+          ),
+          b.variableDeclaration(
+            'var',
+            [b.variableDeclarator(b.identifier('baz'), null)]
+          )
+        ])
+      ),
+    ]);
   });
 
-  describe('Traversal', function () {
-    describe('find', function () {
-      it('finds nodes by type', function () {
-        var ast = b.sequenceExpression([// eslint-disable-line no-shadow
-        b.identifier('foo'), b.literal('asd'), b.identifier('bar')]);
+  describe('Traversal', function() {
+    describe('find', function() {
+      it('finds nodes by type', function() {
+        var ast = b.sequenceExpression([ // eslint-disable-line no-shadow
+          b.identifier('foo'),
+          b.literal('asd'),
+          b.identifier('bar'),
+        ]);
         var vars = Collection.fromNodes([ast]).find(types.Identifier);
 
         expect(vars.size()).toBe(2);
       });
 
-      it('doesn\'t find the nodes in the collection itself', function () {
-        var nodes = [b.identifier('foo'), b.literal('asd'), b.identifier('bar')];
+      it('doesn\'t find the nodes in the collection itself', function() {
+        var nodes = [
+          b.identifier('foo'),
+          b.literal('asd'),
+          b.identifier('bar'),
+        ];
         var vars = Collection.fromNodes(nodes).find(types.Identifier);
 
         expect(vars.size()).toBe(0);
       });
 
-      it('finds nodes by type and properties', function () {
-        var ast = b.sequenceExpression([// eslint-disable-line no-shadow
-        b.identifier('foo'), b.literal('asd'), b.identifier('bar')]);
-        var vars = Collection.fromNodes([ast]).find(types.Identifier, { name: 'bar' });
+      it('finds nodes by type and properties', function() {
+        var ast = b.sequenceExpression([ // eslint-disable-line no-shadow
+          b.identifier('foo'),
+          b.literal('asd'),
+          b.identifier('bar'),
+        ]);
+        var vars = Collection.fromNodes([ast])
+          .find(types.Identifier, {name: 'bar'});
 
         expect(vars.size()).toBe(1);
         expect(vars.nodes()[0]).toBe(ast.expressions[2]);
       });
 
-      it('handles chained find calls properly', function () {
-        var vars = Collection.fromNodes([ast]).find(types.FunctionDeclaration).find(types.VariableDeclarator, { id: { name: 'bar' } });
+      it('handles chained find calls properly', function() {
+        var vars = Collection.fromNodes([ast])
+          .find(types.FunctionDeclaration)
+          .find(types.VariableDeclarator, {id: {name: 'bar'}});
 
         expect(vars.size()).toBe(1);
-        expect(vars.nodes()[0]).toBe(ast.body[1].body.body[0].declarations[0]);
+        expect(vars.nodes()[0]).toBe(
+          ast.body[1].body.body[0].declarations[0]
+        );
       });
 
-      it('handles multi chain find calls properly', function () {
+      it('handles multi chain find calls properly', function() {
         var functionBody = ast.body[1].body.body;
-        var functionDeclarations = Collection.fromNodes([ast]).find(types.FunctionDeclaration);
+        var functionDeclarations = Collection.fromNodes([ast])
+          .find(types.FunctionDeclaration);
 
-        var bar = functionDeclarations.find(types.VariableDeclarator, { id: { name: 'bar' } });
-        var baz = functionDeclarations.find(types.VariableDeclarator, { id: { name: 'baz' } });
+        var bar = functionDeclarations
+          .find(types.VariableDeclarator, {id: {name: 'bar'}});
+        var baz = functionDeclarations
+          .find(types.VariableDeclarator, {id: {name: 'baz'}});
 
         expect(bar.size()).toBe(1);
         expect(bar.nodes()[0]).toBe(functionBody[0].declarations[0]);
@@ -80,111 +117,155 @@ describe('Collection API', function () {
       });
     });
 
-    describe('closestScope', function () {
-      it('gets the closest scope', function () {
+    describe('closestScope', function() {
+      it('gets the closest scope', function() {
         var functionDeclaration = ast.body[1];
-        var scopes = Collection.fromNodes([ast]).find(types.Identifier).closestScope();
+        var scopes = Collection.fromNodes([ast])
+          .find(types.Identifier)
+          .closestScope();
 
         expect(scopes.nodes()[0]).toBe(ast);
         expect(scopes.nodes()[1]).toBe(functionDeclaration);
       });
     });
 
-    describe('closest', function () {
+    describe('closest', function() {
       var decl;
-      beforeEach(function () {
-        decl = b.functionDeclaration(b.identifier('foo'), [], b.blockStatement([b.functionDeclaration(b.identifier('bar'), [], b.blockStatement([b.returnStatement(b.literal(3))]))]));
+      beforeEach(()=> {
+        decl = b.functionDeclaration(
+          b.identifier('foo'),
+          [],
+          b.blockStatement([
+            b.functionDeclaration(
+              b.identifier('bar'),
+              [],
+              b.blockStatement([
+                b.returnStatement(
+                  b.literal(3)
+                )
+              ])
+            ),
+          ])
+        );
       });
 
-      it('finds closest node (up the tree) of the given type', function () {
+      it('finds closest node (up the tree) of the given type', function() {
         var functionDeclaration = ast.body[1];
-        decl = Collection.fromNodes([ast]).find(types.Identifier).closest(types.FunctionDeclaration);
+        decl = Collection.fromNodes([ast])
+          .find(types.Identifier)
+          .closest(types.FunctionDeclaration);
 
         expect(decl.size()).toBe(1);
         expect(decl.nodes()[0]).toBe(functionDeclaration);
       });
 
-      it('allows to filter nodes by pattern', function () {
-        var literals = Collection.fromNodes([decl]).find(types.Literal);
+      it('allows to filter nodes by pattern', function() {
+        var literals = Collection.fromNodes([decl])
+          .find(types.Literal);
         expect(literals.get(0).node.value).toBe(3);
-        var closest = literals.closest(types.FunctionDeclaration, { id: { name: 'foo' } });
+        var closest = literals.closest(
+          types.FunctionDeclaration,
+          {id: {name: 'foo'}}
+        );
         expect(closest.get(0).node.id.name).toBe('foo');
       });
 
-      it('allows to filter nodes with a filter function', function () {
-        var literals = Collection.fromNodes([decl]).find(types.Literal);
+      it('allows to filter nodes with a filter function', function() {
+        var literals = Collection.fromNodes([decl])
+          .find(types.Literal);
         expect(literals.get(0).node.value).toBe(3);
-        var closest = literals.closest(types.FunctionDeclaration, function (node) {
-          return node.id && node.id.name === 'foo';
-        });
+        var closest = literals.closest(
+          types.FunctionDeclaration,
+          (node) => node.id && node.id.name === 'foo'
+        );
         expect(closest.get(0).node.id.name).toBe('foo');
       });
 
-      it('fails when filter evaluates as false', function () {
-        var literals = Collection.fromNodes([decl]).find(types.Literal);
+      it('fails when filter evaluates as false', function() {
+        var literals = Collection.fromNodes([decl])
+          .find(types.Literal);
         expect(literals.get(0).node.value).toBe(3);
-        var closest = literals.closest(types.FunctionDeclaration, function (node) {
-          return node.id && node.id.name === 'blue';
-        });
+        var closest = literals.closest(
+          types.FunctionDeclaration,
+          (node) => node.id && node.id.name === 'blue'
+        );
         expect(closest.nodes().length).toBe(0);
       });
     });
 
-    describe('getVariableDeclarators', function () {
-      it('gets the variable declarators for each selected path', function () {
-        var variableDeclarator = b.variableDeclarator(b.identifier('foo'), null);
-        var program = b.program([b.variableDeclaration('var', [variableDeclarator]), b.expressionStatement(b.identifier('foo')), b.expressionStatement(b.identifier('bar'))]);
+    describe('getVariableDeclarators', function() {
+      it('gets the variable declarators for each selected path', function() {
+        var variableDeclarator =
+          b.variableDeclarator(b.identifier('foo'), null);
+        var program = b.program([
+          b.variableDeclaration('var', [variableDeclarator]),
+          b.expressionStatement(b.identifier('foo')),
+          b.expressionStatement(b.identifier('bar'))
+        ]);
 
-        var decl = Collection.fromNodes([program]).find(types.Identifier).getVariableDeclarators(function (p) {
-          return p.value.name;
-        });
+        var decl = Collection.fromNodes([program])
+          .find(types.Identifier)
+          .getVariableDeclarators(p => p.value.name);
         expect(decl.size()).toBe(1);
         expect(decl.nodes()[0]).toBe(variableDeclarator);
       });
     });
   });
 
-  describe('Mutation', function () {
-    describe('replaceWith', function () {
-      it('handles simple AST node replacement', function () {
-        var ast = b.sequenceExpression([// eslint-disable-line no-shadow
-        b.identifier('foo'), b.literal('asd'), b.identifier('bar')]);
+  describe('Mutation', function() {
+    describe('replaceWith', function() {
+      it('handles simple AST node replacement', function() {
+        var ast = b.sequenceExpression([ // eslint-disable-line no-shadow
+          b.identifier('foo'),
+          b.literal('asd'),
+          b.identifier('bar'),
+        ]);
         var newNode = b.identifier('xyz');
 
         var S = Collection.fromNodes([ast]);
-        S.find(types.Identifier, { name: 'bar' }).replaceWith(newNode);
+        S.find(types.Identifier, {name: 'bar'})
+          .replaceWith(newNode);
 
         expect(S.nodes()[0].expressions[2]).toBe(newNode);
       });
 
-      it('accepts an array as replacement', function () {
-        var ast = b.sequenceExpression([// eslint-disable-line no-shadow
-        b.identifier('foo'), b.literal('asd'), b.identifier('bar')]);
+      it('accepts an array as replacement', function() {
+        var ast = b.sequenceExpression([   // eslint-disable-line no-shadow
+          b.identifier('foo'),
+          b.literal('asd'),
+          b.identifier('bar'),
+        ]);
         var newNode1 = b.identifier('xyz');
         var newNode2 = b.identifier('jkl');
 
         var S = Collection.fromNodes([ast]);
-        S.find(types.Identifier, { name: 'bar' }).replaceWith([newNode1, newNode2]);
+        S.find(types.Identifier, {name: 'bar'})
+          .replaceWith([newNode1, newNode2]);
 
         expect(S.nodes()[0].expressions[2]).toBe(newNode1);
         expect(S.nodes()[0].expressions[3]).toBe(newNode2);
       });
 
-      it('accepts a function as replacement ', function () {
-        var ast = b.sequenceExpression([// eslint-disable-line no-shadow
-        b.identifier('foo'), b.literal('asd'), b.identifier('bar')]);
+      it('accepts a function as replacement ', function() {
+        var ast = b.sequenceExpression([ // eslint-disable-line no-shadow
+          b.identifier('foo'),
+          b.literal('asd'),
+          b.identifier('bar'),
+        ]);
 
         var expectedArgs = [b.identifier('foo'), b.identifier('bar')];
         var receivedArgs = [];
-        var replaceFunction = jest.genMockFunction().mockImplementation(function (path, i) {
-          // We have to keep a reference to the argument before it gets
-          // replaced
-          receivedArgs.push(path.value);
-          return b.identifier(path.value.name + i);
-        });
+        var replaceFunction =
+          jest.genMockFunction().mockImplementation(function(path, i) {
+            // We have to keep a reference to the argument before it gets
+            // replaced
+            receivedArgs.push(path.value);
+            return b.identifier(path.value.name + i);
+          });
 
         var S = Collection.fromNodes([ast]);
-        S.find(types.Identifier).replaceWith(replaceFunction);
+        S.find(types.Identifier)
+         .replaceWith(replaceFunction);
 
         expect(replaceFunction.mock.calls.length).toBe(2);
         expect(receivedArgs).toEqual(expectedArgs);
@@ -195,40 +276,50 @@ describe('Collection API', function () {
       });
     });
 
-    describe('insertBefore', function () {
-      it('inserts a new node before the current one', function () {
+    describe('insertBefore', function() {
+      it('inserts a new node before the current one', function() {
         var ast = b.variableDeclaration( // eslint-disable-line no-shadow
-        'var', [b.variableDeclarator(b.identifier('foo'), null)]);
+          'var',
+          [b.variableDeclarator(b.identifier('foo'), null)]
+        );
         var one = b.variableDeclarator(b.identifier('one'), null);
 
-        Collection.fromNodes([ast]).find(types.VariableDeclarator).insertBefore(one);
+        Collection.fromNodes([ast])
+          .find(types.VariableDeclarator)
+          .insertBefore(one);
 
         expect(ast.declarations.length).toBe(2);
         expect(ast.declarations[0]).toBe(one);
       });
 
-      it('accepts an array of nodes', function () {
+      it('accepts an array of nodes', function() {
         var ast = b.variableDeclaration( // eslint-disable-line no-shadow
-        'var', [b.variableDeclarator(b.identifier('foo'), null)]);
+          'var',
+          [b.variableDeclarator(b.identifier('foo'), null)]
+        );
         var one = b.variableDeclarator(b.identifier('one'), null);
         var two = b.variableDeclarator(b.identifier('two'), null);
 
-        Collection.fromNodes([ast]).find(types.VariableDeclarator).insertBefore([one, two]);
+        Collection.fromNodes([ast])
+          .find(types.VariableDeclarator)
+          .insertBefore([one, two]);
 
         expect(ast.declarations.length).toBe(3);
         expect(ast.declarations[0]).toBe(one);
         expect(ast.declarations[1]).toBe(two);
       });
 
-      it('accepts a function', function () {
+      it('accepts a function', function() {
         var x = b.identifier('x');
         var foo = b.identifier('foo');
         var bar = b.identifier('bar');
         var ast = b.sequenceExpression([foo, bar]); // eslint-disable-line no-shadow
 
-        Collection.fromNodes([ast]).find(types.Identifier).insertBefore(function () {
-          return x;
-        });
+        Collection.fromNodes([ast])
+          .find(types.Identifier)
+          .insertBefore(function() {
+            return x;
+          });
 
         expect(ast.expressions.length).toBe(4);
         expect(ast.expressions).toEqual([x, foo, x, bar]);
@@ -237,40 +328,50 @@ describe('Collection API', function () {
       });
     });
 
-    describe('insertAfter', function () {
-      it('inserts a new node after the current one', function () {
+    describe('insertAfter', function() {
+      it('inserts a new node after the current one', function() {
         var ast = b.variableDeclaration( // eslint-disable-line no-shadow
-        'var', [b.variableDeclarator(b.identifier('foo'), null)]);
+          'var',
+          [b.variableDeclarator(b.identifier('foo'), null)]
+        );
         var one = b.variableDeclarator(b.identifier('one'), null);
 
-        Collection.fromNodes([ast]).find(types.VariableDeclarator).insertAfter(one);
+        Collection.fromNodes([ast])
+          .find(types.VariableDeclarator)
+          .insertAfter(one);
 
         expect(ast.declarations.length).toBe(2);
         expect(ast.declarations[1]).toBe(one);
       });
 
-      it('accepts an array of nodes', function () {
+      it('accepts an array of nodes', function() {
         var ast = b.variableDeclaration( // eslint-disable-line no-shadow
-        'var', [b.variableDeclarator(b.identifier('foo'), null)]);
+          'var',
+          [b.variableDeclarator(b.identifier('foo'), null)]
+        );
         var one = b.variableDeclarator(b.identifier('one'), null);
         var two = b.variableDeclarator(b.identifier('two'), null);
 
-        Collection.fromNodes([ast]).find(types.VariableDeclarator).insertAfter([one, two]);
+        Collection.fromNodes([ast])
+          .find(types.VariableDeclarator)
+          .insertAfter([one, two]);
 
         expect(ast.declarations.length).toBe(3);
         expect(ast.declarations[1]).toBe(one);
         expect(ast.declarations[2]).toBe(two);
       });
 
-      it('accepts a function', function () {
+      it('accepts a function', function() {
         var x = b.identifier('x');
         var foo = b.identifier('foo');
         var bar = b.identifier('bar');
         var ast = b.sequenceExpression([foo, bar]); // eslint-disable-line no-shadow
 
-        Collection.fromNodes([ast]).find(types.Identifier).insertAfter(function () {
-          return x;
-        });
+        Collection.fromNodes([ast])
+          .find(types.Identifier)
+          .insertAfter(function() {
+            return x;
+          });
 
         expect(ast.expressions.length).toBe(4);
         expect(ast.expressions).toEqual([foo, x, bar, x]);
@@ -279,25 +380,31 @@ describe('Collection API', function () {
       });
     });
 
-    describe('removes', function () {
-      it('removes a node if it is part of the body of a statement', function () {
+    describe('removes', function() {
+      it('removes a node if it is part of the body of a statement', function() {
         var x = b.expressionStatement(b.identifier('x'));
         var y = b.expressionStatement(b.identifier('y'));
         var ast = b.program([x, y]); // eslint-disable-line no-shadow
 
-        Collection.fromNodes([ast]).find(types.Identifier, { name: 'x' }).remove();
+        Collection.fromNodes([ast])
+          .find(types.Identifier, {name: 'x'})
+          .remove();
 
         expect(ast.body.length).toBe(1);
         expect(ast.body[0]).toBe(y);
       });
 
-      it('removes a node if it is a function param', function () {
+      it('removes a node if it is a function param', function() {
         var x = b.identifier('x');
         var y = b.identifier('y');
         var ast = b.arrowFunctionExpression( // eslint-disable-line no-shadow
-        [x, b.identifier('z')], y);
+          [x, b.identifier('z')],
+          y
+        );
 
-        Collection.fromNodes([ast]).find(types.Identifier, { name: 'z' }).remove();
+        Collection.fromNodes([ast])
+          .find(types.Identifier, {name: 'z'})
+          .remove();
         expect(ast.params.length).toBe(1);
         expect(ast.params[0]).toBe(x);
         expect(ast.body).toBe(y);

@@ -29,11 +29,12 @@ var globalMethods = {
    * @param {string} name
    * @return {Collection}
    */
-  findVariableDeclarators: function findVariableDeclarators(name) {
-    var filter = name ? { id: { name: name } } : null;
+  findVariableDeclarators: function(name) {
+    var filter = name ? {id: {name: name}} : null;
     return this.find(VariableDeclarator, filter);
   }
 };
+
 
 var filterMethods = {
   /**
@@ -43,19 +44,22 @@ var filterMethods = {
    * @param {string|Array} names A module name or an array of module names
    * @return {Function}
    */
-  requiresModule: function requiresModule(names) {
+  requiresModule: function(names) {
     if (names && !Array.isArray(names)) {
       names = [names];
     }
     var requireIdentifier = b.identifier('require');
-    return function (path) {
+    return function(path) {
       var node = path.value;
-      if (!VariableDeclarator.check(node) || !types.CallExpression.check(node.init) || !astNodesAreEquivalent(node.init.callee, requireIdentifier)) {
+      if (!VariableDeclarator.check(node) ||
+          !types.CallExpression.check(node.init) ||
+          !astNodesAreEquivalent(node.init.callee, requireIdentifier)) {
         return false;
       }
-      return !names || names.some(function (n) {
-        return astNodesAreEquivalent(node.init.arguments[0], b.literal(n));
-      });
+      return !names ||
+        names.some(
+          n => astNodesAreEquivalent(node.init.arguments[0], b.literal(n))
+        );
     };
   }
 };
@@ -67,33 +71,37 @@ var transformMethods = {
    * @param {string} newName
    * @return {Collection}
    */
-  renameTo: function renameTo(newName) {
+  renameTo: function(newName) {
     // TODO: Include JSXElements
-    return this.forEach(function (path) {
+    return this.forEach(function(path) {
       var node = path.value;
       var oldName = node.id.name;
       var rootScope = path.scope;
       var rootPath = rootScope.path;
-      Collection.fromPaths([rootPath]).find(types.Identifier, { name: oldName }).filter(function (path) {
-        // ignore properties in MemberExpressions
-        var parent = path.parent.node;
-        return !types.MemberExpression.check(parent) || parent.property !== path.node || !parent.computed;
-      }).forEach(function (path) {
-        var scope = path.scope;
-        while (scope && scope !== rootScope) {
-          if (scope.declares(oldName)) {
-            return;
+      Collection.fromPaths([rootPath])
+        .find(types.Identifier, {name: oldName})
+        .filter(function(path) { // ignore properties in MemberExpressions
+          var parent = path.parent.node;
+          return !types.MemberExpression.check(parent) ||
+            parent.property !== path.node ||
+            !parent.computed;
+        })
+        .forEach(function(path) {
+          var scope = path.scope;
+          while (scope && scope !== rootScope) {
+            if (scope.declares(oldName)) {
+              return;
+            }
+            scope = scope.parent;
           }
-          scope = scope.parent;
-        }
-        if (scope) {
-          // identifier must refer to declared variable
-          path.get('name').replace(newName);
-        }
-      });
+          if (scope) { // identifier must refer to declared variable
+            path.get('name').replace(newName);
+          }
+        });
     });
   }
 };
+
 
 function register() {
   NodeCollection.register();

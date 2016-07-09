@@ -8,9 +8,9 @@
  *
  */
 
-/*global jest, describe, it, expect*/
-
 'use strict';
+
+/*global jest, describe, it, expect*/
 
 jest.autoMockOff();
 var core = require('../core');
@@ -18,42 +18,38 @@ var recast = require('recast');
 var b = recast.types.builders;
 var NodePath = recast.types.NodePath;
 
-describe('core API', function () {
-  it('returns a Collection from a source string', function () {
-    expect(core('var foo;').constructor.name).toContain('Collection');
+describe('core API', function() {
+  it('returns a Collection from a source string', function() {
+    expect(core('var foo;').constructor.name ).toContain('Collection');
   });
 
-  it('returns a Collection from an AST node', function () {
+  it('returns a Collection from an AST node', function() {
     var node = b.identifier('foo');
     expect(core(node).constructor.name).toContain('Collection');
   });
 
-  it('returns a Collection from an array of AST nodes', function () {
+  it('returns a Collection from an array of AST nodes', function() {
     var node = b.identifier('foo');
     expect(core([node]).constructor.name).toContain('Collection');
   });
 
-  it('returns a Collection from a path', function () {
+  it('returns a Collection from a path', function() {
     var path = new NodePath(b.identifier('foo'));
     expect(core(path).constructor.name).toContain('Collection');
   });
 
-  it('returns a Collection from an array of paths', function () {
+  it('returns a Collection from an array of paths', function() {
     var path = new NodePath(b.identifier('foo'));
     expect(core([path]).constructor.name).toContain('Collection');
   });
 
-  it('returns a Collection from an empty array', function () {
+  it('returns a Collection from an empty array', function() {
     expect(core([]).constructor.name).toContain('Collection');
   });
 
-  it('throws if it gets an invalid value', function () {
-    expect(function () {
-      return core(42);
-    }).toThrow();
-    expect(function () {
-      return core({});
-    }).toThrow();
+  it('throws if it gets an invalid value', function() {
+    expect(() => core(42)).toThrow();
+    expect(() => core({})).toThrow();
   });
 
   it('returns the source as is if nothing was modified', function () {
@@ -80,4 +76,5 @@ describe('core API', function () {
 
     expect(ct).toBe(1);
   });
+
 });
