@@ -10,8 +10,9 @@
 
 'use strict';
 
-var hasOwn =
-  Object.prototype.hasOwnProperty.call.bind(Object.prototype.hasOwnProperty);
+var _Object$keys = require('babel-runtime/core-js/object/keys')['default'];
+
+var hasOwn = Object.prototype.hasOwnProperty.call.bind(Object.prototype.hasOwnProperty);
 
 /**
  * Checks whether needle is a strict subset of haystack.
@@ -25,11 +26,8 @@ function matchNode(haystack, needle) {
     return needle(haystack);
   }
   if (isNode(needle) && isNode(haystack)) {
-    return Object.keys(needle).every(function(property) {
-      return (
-        hasOwn(haystack, property) &&
-        matchNode(haystack[property], needle[property])
-      );
+    return _Object$keys(needle).every(function (property) {
+      return hasOwn(haystack, property) && matchNode(haystack[property], needle[property]);
     });
   }
   return haystack === needle;

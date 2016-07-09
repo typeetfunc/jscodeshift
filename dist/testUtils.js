@@ -11,8 +11,8 @@
 
 'use strict';
 
-const fs = require('fs');
-const path = require('path');
+var fs = require('fs');
+var path = require('path');
 
 /**
  * Utility function to run a jscodeshift script within a unit test. This makes
@@ -38,33 +38,26 @@ function runTest(dirName, transformName, options, testFilePrefix) {
     testFilePrefix = transformName;
   }
 
-  const fixtureDir = path.join(dirName, '..', '__testfixtures__');
-  const inputPath = path.join(fixtureDir, testFilePrefix + '.input.js');
-  const source = fs.readFileSync(inputPath, 'utf8');
-  const expectedOutput = fs.readFileSync(
-    path.join(fixtureDir, testFilePrefix + '.output.js'),
-    'utf8'
-  );
+  var fixtureDir = path.join(dirName, '..', '__testfixtures__');
+  var inputPath = path.join(fixtureDir, testFilePrefix + '.input.js');
+  var source = fs.readFileSync(inputPath, 'utf8');
+  var expectedOutput = fs.readFileSync(path.join(fixtureDir, testFilePrefix + '.output.js'), 'utf8');
   // Assumes transform is one level up from __tests__ directory
-  const module = require(path.join(dirName, '..', transformName + '.js'));
+  var module = require(path.join(dirName, '..', transformName + '.js'));
   // Handle ES6 modules using default export for the transform
-  const transform = module.default ? module.default : module;
+  var transform = module['default'] ? module['default'] : module;
 
   // Jest resets the module registry after each test, so we need to always get
   // a fresh copy of jscodeshift on every test run.
-  let jscodeshift = require('./core');
+  var jscodeshift = require('./core');
   if (module.parser) {
     jscodeshift = jscodeshift.withParser(module.parser);
   }
 
-  const output = transform(
-    {path: inputPath, source},
-    {
-      jscodeshift,
-      stats: () => {},
-    },
-    options || {}
-  );
+  var output = transform({ path: inputPath, source: source }, {
+    jscodeshift: jscodeshift,
+    stats: function stats() {}
+  }, options || {});
   expect((output || '').trim()).toEqual(expectedOutput.trim());
 }
 exports.runTest = runTest;
@@ -74,11 +67,9 @@ exports.runTest = runTest;
  * jscodeshift transform.
  */
 function defineTest(dirName, transformName, options, testFilePrefix) {
-  var testName = testFilePrefix
-    ? `transforms correctly using "${testFilePrefix}" data`
-    : 'transforms correctly';
-  describe(transformName, () => {
-    it(testName, () => {
+  var testName = testFilePrefix ? 'transforms correctly using "' + testFilePrefix + '" data' : 'transforms correctly';
+  describe(transformName, function () {
+    it(testName, function () {
       runTest(dirName, transformName, options, testFilePrefix);
     });
   });

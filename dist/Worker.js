@@ -10,34 +10,50 @@
 
 'use strict';
 
-const EventEmitter = require('events').EventEmitter;
+var _Set = require('babel-runtime/core-js/set')['default'];
 
-const async = require('async');
-const fs = require('fs');
-const writeFile = require('write');
-const _ = require('lodash');
-const getParser = require('./getParser');
-const jscodeshift = require('./core');
+var EventEmitter = require('events').EventEmitter;
 
-let emitter;
-let finish;
-let notify;
-let transform;
-let parser;
+var async = require('async');
+var fs = require('fs');
+var writeFile = require('write');
+var _ = require('lodash');
+var getParser = require('./getParser');
+var jscodeshift = require('./core');
+
+var emitter = undefined;
+var finish = undefined;
+var notify = undefined;
+var transform = undefined;
+var parser = undefined;
 
 if (module.parent) {
   emitter = new EventEmitter();
-  emitter.send = (data) => { run(data); };
-  finish = () => { emitter.emit('disconnect'); };
-  notify = (data) => { emitter.emit('message', data); };
-  module.exports = (args) => {
+  emitter.send = function (data) {
+    run(data);
+  };
+  finish = function () {
+    emitter.emit('disconnect');
+  };
+  notify = function (data) {
+    emitter.emit('message', data);
+  };
+  module.exports = function (args) {
     setup(args[0], args[1]);
     return emitter;
   };
 } else {
-  finish = () => setImmediate(() => process.disconnect());
-  notify = (data) => { process.send(data); };
-  process.on('message', (data) => { run(data); });
+  finish = function () {
+    return setImmediate(function () {
+      return process.disconnect();
+    });
+  };
+  notify = function (data) {
+    process.send(data);
+  };
+  process.on('message', function (data) {
+    run(data);
+  });
   setup(process.argv[2], process.argv[3]);
 }
 
@@ -55,41 +71,37 @@ function setup(tr, babel) {
   if (babel === 'babel') {
     require('babel-register')({
       babelrc: false,
-      presets: [require('babel-preset-es2015')],
+      presets: [require('babel-preset-es2015')]
     });
   }
-  const module = require(tr);
-  transform = typeof module.default === 'function' ?
-    module.default :
-    module;
+  var module = require(tr);
+  transform = typeof module['default'] === 'function' ? module['default'] : module;
   if (module.parser) {
-    parser = typeof module.parser === 'string' ?
-      getParser(module.parser) :
-      module.parser;
+    parser = typeof module.parser === 'string' ? getParser(module.parser) : module.parser;
   }
 }
 
 function free() {
-  notify({action: 'free'});
+  notify({ action: 'free' });
 }
 
 function updateStatus(status, file, msg) {
-  msg = msg  ?  file + ' ' + msg : file;
-  notify({action: 'status', status: status, msg: msg});
+  msg = msg ? file + ' ' + msg : file;
+  notify({ action: 'status', status: status, msg: msg });
 }
 
 function empty() {}
 
 function stats(name, quantity) {
   quantity = typeof quantity !== 'number' ? 1 : quantity;
-  notify({action: 'update', name: name, quantity: quantity});
+  notify({ action: 'update', name: name, quantity: quantity });
 }
 
 function trimStackTrace(trace) {
   // Remove this file from the stack trace of an error thrown in the transformer
   var lines = trace.split('\n');
   var result = [];
-  lines.every(function(line) {
+  lines.every(function (line) {
     if (line.indexOf(__filename) === -1) {
       result.push(line);
       return true;
@@ -101,7 +113,7 @@ function trimStackTrace(trace) {
 function writeFileCallback(file, callback) {
   return function writeCallback(err) {
     if (err) {
-        updateStatus('error', file, 'File writer error: ' + err);
+      updateStatus('error', file, 'File writer error: ' + err);
     } else {
       updateStatus('ok', file);
     }
@@ -119,14 +131,14 @@ function completeCallback(callback) {
 }
 
 function normalizeFileList(fileList, sourcePath) {
-  var paths = new Set();
-  return fileList.map(file => {
+  var paths = new _Set();
+  return fileList.map(function (file) {
     var normalizedFile;
     if (_.isString(file)) {
-      normalizedFile = {path: sourcePath, source: file};
+      normalizedFile = { path: sourcePath, source: file };
     } else {
-      const pathName = _.has(file, 'path') ? file.path : sourcePath;
-      normalizedFile = {source: file.source, path: pathName};
+      var pathName = _.has(file, 'path') ? file.path : sourcePath;
+      normalizedFile = { source: file.source, path: pathName };
     }
     if (paths.has(normalizedFile.path)) {
       normalizedFile.isDuplicate = true;
@@ -139,11 +151,7 @@ function normalizeFileList(fileList, sourcePath) {
 
 function writeFileWithCallback(pathName, content, callback) {
   // Create file with any intermediate directories
-  writeFile(
-    pathName,
-    content,
-    writeFileCallback(pathName, callback)
-  );
+  writeFile(pathName, content, writeFileCallback(pathName, callback));
 }
 
 function fileError(file, err) {
@@ -157,99 +165,75 @@ function run(data) {
     finish();
     return;
   }
-  async.each(
-    files,
-    function(file, callback) {
-      fs.readFile(file, function(err, source) {
-        if (err) {
-          fileError(file, err);
+  async.each(files, function (file, callback) {
+    fs.readFile(file, function (err, source) {
+      if (err) {
+        fileError(file, err);
+        callback();
+        return;
+      }
+      source = source.toString();
+      try {
+        var out = transform({
+          path: file,
+          source: source
+        }, {
+          jscodeshift: prepareJscodeshift(options),
+          stats: options.dry ? stats : empty
+        }, options);
+        if (!out || out === source) {
+          updateStatus(out ? 'nochange' : 'skip', file);
           callback();
           return;
         }
-        source = source.toString();
-        try {
-          var out = transform(
-            {
-              path: file,
-              source: source,
-            },
-            {
-              jscodeshift: prepareJscodeshift(options),
-              stats: options.dry ? stats : empty
-            },
-            options
-          );
-          if (!out || out === source) {
-            updateStatus(out ? 'nochange' : 'skip', file);
-            callback();
-            return;
-          }
-          if (options.print) {
-            console.log(out); // eslint-disable-line no-console
-          }
-          if (!options.dry) {
-            if (_.isArray(out)) {
-              async.each(
-                normalizeFileList(out, file),
-                function (outFile, outCallback) {
-                  var isSourceFile = outFile.path === file;
-                  if (!outFile.source || outFile.isDuplicate) {
-                    updateStatus('skip', outFile.path);
-                    outCallback();
-                    return;
-                  } else if (isSourceFile && outFile.source === source) {
-                    updateStatus('nochange', outFile.path);
-                    outCallback();
-                    return;
-                  } else {
-                    if (isSourceFile) {
-                      writeFileWithCallback(
-                        outFile.path,
-                        outFile.source,
-                        outCallback
-                      );
+        if (options.print) {
+          console.log(out); // eslint-disable-line no-console
+        }
+        if (!options.dry) {
+          if (_.isArray(out)) {
+            async.each(normalizeFileList(out, file), function (outFile, outCallback) {
+              var isSourceFile = outFile.path === file;
+              if (!outFile.source || outFile.isDuplicate) {
+                updateStatus('skip', outFile.path);
+                outCallback();
+                return;
+              } else if (isSourceFile && outFile.source === source) {
+                updateStatus('nochange', outFile.path);
+                outCallback();
+                return;
+              } else {
+                if (isSourceFile) {
+                  writeFileWithCallback(outFile.path, outFile.source, outCallback);
+                } else {
+                  fs.readFile(outFile.path, function (err, content) {
+                    var fileNotExist = err && err.code === 'ENOENT';
+                    if (err && !fileNotExist) {
+                      fileError(outFile.path, err);
+                      outCallback();
+                    } else if (content === outFile.source) {
+                      updateStatus('nochange', outFile.path);
+                      outCallback();
                     } else {
-                      fs.readFile(outFile.path, function (err, content) {
-                         var fileNotExist = err && err.code === 'ENOENT';
-                         if (err && !fileNotExist) {
-                           fileError(outFile.path, err);
-                           outCallback();
-                         } else if (content === outFile.source) {
-                           updateStatus('nochange', outFile.path);
-                           outCallback();
-                         } else {
-                           if (fileNotExist) {
-                             updateStatus('create', outFile.path);
-                           }
-                           writeFileWithCallback(
-                             outFile.path,
-                             outFile.source,
-                             outCallback
-                           );
-                         }
-                      });
+                      if (fileNotExist) {
+                        updateStatus('create', outFile.path);
+                      }
+                      writeFileWithCallback(outFile.path, outFile.source, outCallback);
                     }
-                  }
-                },
-                completeCallback(callback)
-              );
-            } else {
-              fs.writeFile(file, out, writeFileCallback(file, callback));
-            }
+                  });
+                }
+              }
+            }, completeCallback(callback));
           } else {
-            updateStatus('ok', file);
-            callback();
+            fs.writeFile(file, out, writeFileCallback(file, callback));
           }
-        } catch(err) {
-          updateStatus(
-            'error',
-            file,
-            'Transformation error\n' + trimStackTrace(err.stack)
-          );
+        } else {
+          updateStatus('ok', file);
           callback();
         }
-      });
-    },
-    completeCallback(free)
-  );
+      } catch (err) {
+        updateStatus('error', file, 'Transformation error\n' + trimStackTrace(err.stack));
+        callback();
+      }
+    });
+  }, completeCallback(free));
 }

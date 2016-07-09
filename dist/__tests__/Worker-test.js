@@ -12,27 +12,26 @@
 
 jest.autoMockOff();
 
-const testUtils = require('../../utils/testUtils');
+var testUtils = require('../../utils/testUtils');
 
-const createTransformWith = testUtils.createTransformWith;
-const createTempFileWith = testUtils.createTempFileWith;
-const getFileContent = testUtils.getFileContent;
+var createTransformWith = testUtils.createTransformWith;
+var createTempFileWith = testUtils.createTempFileWith;
+var getFileContent = testUtils.getFileContent;
 
-describe('Worker API', () => {
-  let worker;
+describe('Worker API', function () {
+  var worker = undefined;
 
-  beforeEach(() => {
+  beforeEach(function () {
     worker = require('../Worker');
   });
 
-  it('transforms files', done => {
-    const transformPath =
-      createTransformWith('return fileInfo.source + " changed";');
-    const sourcePath = createTempFileWith('foo');
-    const emitter = worker([transformPath]);
+  it('transforms files', function (done) {
+    var transformPath = createTransformWith('return fileInfo.source + " changed";');
+    var sourcePath = createTempFileWith('foo');
+    var emitter = worker([transformPath]);
 
-    emitter.send({files: [sourcePath]});
-    emitter.once('message', (data) => {
+    emitter.send({ files: [sourcePath] });
+    emitter.once('message', function (data) {
       expect(data.status).toBe('ok');
       expect(data.msg).toBe(sourcePath);
       expect(getFileContent(sourcePath)).toBe('foo changed');
@@ -40,66 +39,52 @@ describe('Worker API', () => {
     });
   });
 
-  describe('custom parser', () => {
+  describe('custom parser', function () {
     function getTransformForParser(parser) {
-      return createTempFileWith(
-        `function transform(fileInfo, api) {
-          api.jscodeshift(fileInfo.source);
-          return "changed";
-         }
-         ${parser ? `transform.parser = '${parser}';` : ''}
-         module.exports = transform;
-        `
-      );
+      return createTempFileWith('function transform(fileInfo, api) {\n          api.jscodeshift(fileInfo.source);\n          return "changed";\n         }\n         ' + (parser ? 'transform.parser = \'' + parser + '\';' : '') + '\n         module.exports = transform;\n        ');
     }
     function getSourceFile() {
       // This code cannot be parsed by Babel v5
-      return createTempFileWith(
-         'const x = (a: Object, b: string): void => {}'
-      );
+      return createTempFileWith('const x = (a: Object, b: string): void => {}');
     }
 
-    it('errors if new flow type code is parsed with babel v5', done => {
-      const transformPath = createTransformWith(
-        'api.jscodeshift(fileInfo.source); return "changed";'
-      );
-      const sourcePath = getSourceFile();
-      const emitter = worker([transformPath]);
+    it('errors if new flow type code is parsed with babel v5', function (done) {
+      var transformPath = createTransformWith('api.jscodeshift(fileInfo.source); return "changed";');
+      var sourcePath = getSourceFile();
+      var emitter = worker([transformPath]);
 
-      emitter.send({files: [sourcePath]});
-      emitter.once('message', (data) => {
+      emitter.send({ files: [sourcePath] });
+      emitter.once('message', function (data) {
         expect(data.status).toBe('error');
         expect(data.msg).toMatch('SyntaxError');
         done();
       });
     });
 
-    it('uses babylon if configured as such', done => {
-      const transformPath = getTransformForParser('babylon');
-      const sourcePath = getSourceFile();
-      const emitter = worker([transformPath]);
+    it('uses babylon if configured as such', function (done) {
+      var transformPath = getTransformForParser('babylon');
+      var sourcePath = getSourceFile();
+      var emitter = worker([transformPath]);
 
-      emitter.send({files: [sourcePath]});
-      emitter.once('message', (data) => {
+      emitter.send({ files: [sourcePath] });
+      emitter.once('message', function (data) {
         expect(data.status).toBe('ok');
         expect(getFileContent(sourcePath)).toBe('changed');
         done();
       });
     });
 
-    it('uses flow if configured as such', done => {
-      const transformPath = getTransformForParser('flow');
-      const sourcePath = getSourceFile();
-      const emitter = worker([transformPath]);
+    it('uses flow if configured as such', function (done) {
+      var transformPath = getTransformForParser('flow');
+      var sourcePath = getSourceFile();
+      var emitter = worker([transformPath]);
 
-      emitter.send({files: [sourcePath]});
-      emitter.once('message', (data) => {
+      emitter.send({ files: [sourcePath] });
+      emitter.once('message', function (data) {
         expect(data.status).toBe('ok');
         expect(getFileContent(sourcePath)).toBe('changed');
         done();
       });
     });
-
   });
-
 });

@@ -9,6 +9,9 @@
  */
 
 'use strict';
+
+var _Object$assign = require('babel-runtime/core-js/object/assign')['default'];
+
 var Collection = require('./Collection');
 
 var collections = require('./collections');
@@ -41,9 +44,7 @@ for (var name in collections) {
  * @return {Collection}
  */
 function core(source, options) {
-  return typeof source === 'string' ?
-    fromSource(source, options) :
-    fromAST(source);
+  return typeof source === 'string' ? fromSource(source, options) : fromAST(source);
 }
 
 /**
@@ -67,9 +68,7 @@ function fromAST(ast) {
       return Collection.fromNodes([ast]);
     }
   }
-  throw new TypeError(
-    'Received an unexpected value ' + Object.prototype.toString.call(ast)
-  );
+  throw new TypeError('Received an unexpected value ' + Object.prototype.toString.call(ast));
 }
 
 function fromSource(source, options) {
@@ -94,7 +93,7 @@ function match(path, filter) {
     if (typeof path.get === 'function') {
       path = path.get();
     } else {
-      path = {value: path};
+      path = { value: path };
     }
   }
   return matchNode(path.value, filter);
@@ -127,11 +126,11 @@ function withParser(parser) {
     parser = getParser(parser);
   }
 
-  const newCore = function(source, options) {
+  var newCore = function newCore(source, options) {
     if (options && !options.parser) {
       options.parser = parser;
     } else {
-      options = {parser};
+      options = { parser: parser };
     }
     return core(source, options);
   };
@@ -141,8 +140,8 @@ function withParser(parser) {
 
 function enrichCore(core, parser) {
   // add builders and types to the function for simple access
-  Object.assign(core, recast.types.namedTypes);
-  Object.assign(core, recast.types.builders);
+  _Object$assign(core, recast.types.namedTypes);
+  _Object$assign(core, recast.types.builders);
   core.registerMethods = Collection.registerMethods;
   core.types = recast.types;
   core.match = match;

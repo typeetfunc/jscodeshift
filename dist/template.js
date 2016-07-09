@@ -10,10 +10,12 @@
 
 'use strict';
 
-const recast = require('recast');
+var _Array$from = require('babel-runtime/core-js/array/from')['default'];
 
-const builders = recast.types.builders;
-const types = recast.types.namedTypes;
+var recast = require('recast');
+
+var builders = recast.types.builders;
+var types = recast.types.namedTypes;
 
 function splice(arr, element, replacement) {
   arr.splice.apply(arr, [arr.indexOf(element), 1].concat(replacement));
@@ -28,61 +30,47 @@ function cleanLocation(node) {
 
 function ensureStatement(node) {
   return types.Statement.check(node) ?
-    // Removing the location information seems to ensure that the node is
-    // correctly reprinted with a trailing semicolon
-    cleanLocation(node) :
-    builders.expressionStatement(node);
+  // Removing the location information seems to ensure that the node is
+  // correctly reprinted with a trailing semicolon
+  cleanLocation(node) : builders.expressionStatement(node);
 }
 
 function getVistor(varName, nodes) {
-  let counter = 0;
+  var counter = 0;
   return {
-    visitIdentifier: function(path) {
+    visitIdentifier: function visitIdentifier(path) {
       this.traverse(path);
-      const node = path.node;
-      const parent = path.parent.node;
+      var node = path.node;
+      var parent = path.parent.node;
 
       // If this identifier is not one of our generated ones, do nothing
       if (node.name !== varName) {
         return;
       }
 
-      let replacement = nodes[counter++];
+      var replacement = nodes[counter++];
 
       // If the replacement is an array, we need to explode the nodes in context
       if (Array.isArray(replacement)) {
 
-        if (types.Function.check(parent) &&
-            parent.params.indexOf(node) > -1) {
+        if (types.Function.check(parent) && parent.params.indexOf(node) > -1) {
           // Function parameters: function foo(${bar}) {}
           splice(parent.params, node, replacement);
         } else if (types.VariableDeclarator.check(parent)) {
           // Variable declarations: var foo = ${bar}, baz = 42;
-          splice(
-            path.parent.parent.node.declarations,
-            parent,
-            replacement
-          );
+          splice(path.parent.parent.node.declarations, parent, replacement);
         } else if (types.ArrayExpression.check(parent)) {
           // Arrays: var foo = [${bar}, baz];
           splice(parent.elements, node, replacement);
         } else if (types.Property.check(parent) && parent.shorthand) {
           // Objects: var foo = {${bar}, baz: 42};
-          splice(
-            path.parent.parent.node.properties,
-            parent,
-            replacement
-          );
-        } else if (types.CallExpression.check(parent) &&
-            parent.arguments.indexOf(node) > -1) {
+          splice(path.parent.parent.node.properties, parent, replacement);
+        } else if (types.CallExpression.check(parent) && parent.arguments.indexOf(node) > -1) {
           // Function call arguments: foo(${bar}, baz)
           splice(parent.arguments, node, replacement);
         } else if (types.ExpressionStatement.check(parent)) {
           // Generic sequence of statements: { ${foo}; bar; }
-          path.parent.replace.apply(
-            path.parent,
-            replacement.map(ensureStatement)
-          );
+          path.parent.replace.apply(path.parent, replacement.map(ensureStatement));
         } else {
           // Every else, let recast take care of it
           path.replace.apply(path, replacement);
@@ -97,36 +85,30 @@ function getVistor(varName, nodes) {
 }
 
 function replaceNodes(src, varName, nodes, parser) {
-  const ast = recast.parse(src, {parser});
+  var ast = recast.parse(src, { parser: parser });
   recast.visit(ast, getVistor(varName, nodes));
   return ast;
 }
 
 function getRandomVarName() {
-  return `$jscodeshift${Math.floor(Math.random() * 1000)}$`;
+  return '$jscodeshift' + Math.floor(Math.random() * 1000) + '$';
 }
 
-
 module.exports = function withParser(parser) {
-  function statements(template/*, ...nodes*/) {
-    template = Array.from(template);
-    let varName = getRandomVarName();
-    let src = template.join(varName);
-    return replaceNodes(
-      src,
-      varName,
-      Array.from(arguments).slice(1),
-      parser
-    ).program.body;
+  function statements(template /*, ...nodes*/) {
+    template = _Array$from(template);
+    var varName = getRandomVarName();
+    var src = template.join(varName);
+    return replaceNodes(src, varName, _Array$from(arguments).slice(1), parser).program.body;
   }
 
-  function statement(/*template, ...nodes*/) {
+  function statement() /*template, ...nodes*/{
     return statements.apply(null, arguments)[0];
   }
 
-  function expression(template/*, ...nodes*/) {
+  function expression(template /*, ...nodes*/) {
     // wrap code in `(...)` to force evaluation as expression
-    template = Array.from(template);
+    template = _Array$from(template);
     if (template.length > 1) {
       template[0] = '(' + template[0];
       template[template.length - 1] += ')';
@@ -134,11 +116,8 @@ module.exports = function withParser(parser) {
       template[0] = '(' + template[0] + ')';
     }
 
-    return statement.apply(
-      null,
-      [template].concat(Array.from(arguments).slice(1))
-    ).expression;
+    return statement.apply(null, [template].concat(_Array$from(arguments).slice(1))).expression;
   }
 
-  return {statements, statement, expression};
-}
+  return { statements: statements, statement: statement, expression: expression };
+};

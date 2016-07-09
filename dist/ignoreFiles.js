@@ -1,9 +1,9 @@
 'use strict';
 
-const fs = require('fs');
-const mm = require('micromatch');
+var fs = require('fs');
+var mm = require('micromatch');
 
-const matchers = [];
+var matchers = [];
 
 /**
  * Add glob patterns to ignore matched files and folders.
@@ -13,10 +13,10 @@ const matchers = [];
  */
 function addIgnorePattern(val) {
   if (val && typeof val === 'string') {
-    let pattern = val;
+    var pattern = val;
     if (pattern.indexOf('/') === -1) {
       matchers.push('**/' + pattern);
-    } else if (pattern[pattern.length-1] === '/') {
+    } else if (pattern[pattern.length - 1] === '/') {
       matchers.push('**/' + pattern + '**');
       matchers.push(pattern + '**');
     }
@@ -29,7 +29,7 @@ function addIgnorePattern(val) {
  * @param {String|Array<String>} input - the ignore patterns
  */
 function addIgnoreFromInput(input) {
-  let patterns = [];
+  var patterns = [];
   if (input) {
     patterns = patterns.concat(input);
   }
@@ -41,13 +41,13 @@ function addIgnoreFromInput(input) {
  * @param {String|Array<String>} input - the paths to the ignore config files
  */
 function addIgnoreFromFile(input) {
-  let lines = [];
-  let files = [];
+  var lines = [];
+  var files = [];
   if (input) {
     files = files.concat(input);
   }
 
-  files.forEach(function(config) {
+  files.forEach(function (config) {
     var stats = fs.statSync(config);
     if (stats.isFile()) {
       var content = fs.readFileSync(config, 'utf8');
@@ -59,7 +59,7 @@ function addIgnoreFromFile(input) {
 }
 
 function shouldIgnore(path) {
-  var matched = matchers.length ? mm.any(path, matchers, { dot:true }) : false;
+  var matched = matchers.length ? mm.any(path, matchers, { dot: true }) : false;
   return matched;
 }
 

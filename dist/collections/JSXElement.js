@@ -10,6 +10,10 @@
 
 'use strict';
 
+var _Object$keys = require('babel-runtime/core-js/object/keys')['default'];
+
+var _Object$create = require('babel-runtime/core-js/object/create')['default'];
+
 var _ = require('lodash');
 var Collection = require('../Collection');
 var NodeCollection = require('./Node');
@@ -33,8 +37,8 @@ var globalMethods = {
    * @param {string} name
    * @return {Collection}
    */
-  findJSXElements: function(name) {
-    var nameFilter = name && {openingElement: {name: {name: name}}};
+  findJSXElements: function findJSXElements(name) {
+    var nameFilter = name && { openingElement: { name: { name: name } } };
     return this.find(JSXElement, nameFilter);
   },
 
@@ -47,23 +51,15 @@ var globalMethods = {
    * findJSXElementsByModuleName('Foo') will find <Bar />, without having to
    * know the variable name.
    */
-  findJSXElementsByModuleName: function(moduleName) {
-    assert.ok(
-      moduleName && typeof moduleName === 'string',
-      'findJSXElementsByModuleName(...) needs a name to look for'
-    );
+  findJSXElementsByModuleName: function findJSXElementsByModuleName(moduleName) {
+    assert.ok(moduleName && typeof moduleName === 'string', 'findJSXElementsByModuleName(...) needs a name to look for');
 
-    return this.find(types.VariableDeclarator)
-      .filter(requiresModule(moduleName))
-      .map(function(path) {
-        var id = path.value.id.name;
-        if (id) {
-          return Collection.fromPaths([path])
-            .closestScope()
-            .findJSXElements(id)
-            .paths();
-        }
-      });
+    return this.find(types.VariableDeclarator).filter(requiresModule(moduleName)).map(function (path) {
+      var id = path.value.id.name;
+      if (id) {
+        return Collection.fromPaths([path]).closestScope().findJSXElements(id).paths();
+      }
+    });
   }
 };
 
@@ -75,23 +71,22 @@ var filterMethods = {
    * @param {Object} attributeFilter
    * @return {function}
    */
-  hasAttributes: function(attributeFilter) {
-    var attributeNames = Object.keys(attributeFilter);
+  hasAttributes: function hasAttributes(attributeFilter) {
+    var attributeNames = _Object$keys(attributeFilter);
     return function filter(path) {
       if (!JSXElement.check(path.value)) {
         return false;
       }
-      var elementAttributes = Object.create(null);
-      path.value.openingElement.attributes.forEach(function(attr) {
-        if (!JSXAttribute.check(attr) ||
-          !(attr.name.name in attributeFilter)) {
+      var elementAttributes = _Object$create(null);
+      path.value.openingElement.attributes.forEach(function (attr) {
+        if (!JSXAttribute.check(attr) || !(attr.name.name in attributeFilter)) {
           return;
         }
         elementAttributes[attr.name.name] = attr;
       });
 
-      return attributeNames.every(function(name) {
-        if (!(name in elementAttributes) ){
+      return attributeNames.every(function (name) {
+        if (!(name in elementAttributes)) {
           return false;
         }
         var value = elementAttributes[name].value;
@@ -113,13 +108,11 @@ var filterMethods = {
    * @param {string} name
    * @return {function}
    */
-  hasChildren: function(name) {
+  hasChildren: function hasChildren(name) {
     return function filter(path) {
-      return JSXElement.check(path.value) &&
-        path.value.children.some(
-          child => JSXElement.check(child) &&
-                   child.openingElement.name.name === name
-        );
+      return JSXElement.check(path.value) && path.value.children.some(function (child) {
+        return JSXElement.check(child) && child.openingElement.name.name === name;
+      });
     };
   }
 };
@@ -131,9 +124,9 @@ var traversalMethods = {
    *
    * @return {Collection}
    */
-  childNodes: function() {
+  childNodes: function childNodes() {
     var paths = [];
-    this.forEach(function(path) {
+    this.forEach(function (path) {
       var children = path.get('children');
       var l = children.value.length;
       for (var i = 0; i < l; i++) {
@@ -148,9 +141,9 @@ var traversalMethods = {
    *
    * @return {JSXElementCollection}
    */
-  childElements: function() {
+  childElements: function childElements() {
     var paths = [];
-    this.forEach(function(path) {
+    this.forEach(function (path) {
       var children = path.get('children');
       var l = children.value.length;
       for (var i = 0; i < l; i++) {
@@ -160,7 +153,7 @@ var traversalMethods = {
       }
     });
     return Collection.fromPaths(paths, this, JSXElement);
-  },
+  }
 };
 
 var mappingMethods = {
@@ -171,7 +164,7 @@ var mappingMethods = {
    * @param {NodePath} path
    * @return {string}
    */
-  getRootName: function(path) {
+  getRootName: function getRootName(path) {
     var name = path.value.openingElement.name;
     while (types.JSXMemberExpression.check(name)) {
       name = name.object;

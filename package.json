@@ -9,7 +9,7 @@
   "bugs": "https://github.com/facebook/jscodeshift/issues",
   "main": "index.js",
   "scripts": {
-    "build": "cp -R src/ dist/",
+    "build": "rm -rf dist; babel src/ --out-dir dist/",
     "test": "jest --bail",
     "prepublish": "npm run build && npm run test"
   },
