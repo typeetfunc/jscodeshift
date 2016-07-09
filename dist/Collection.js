@@ -174,7 +174,7 @@ var Collection = (function () {
       var printer = isPretty ? function () {
         return recast.prettyPrint.apply(recast, arguments);
       } : function () {
-        return recast.pretty.apply(recast, arguments);
+        return recast.print.apply(recast, arguments);
       };
       if (this.__paths.length === 1) {
         return printer(this.__paths[0], options).code;
